@@ -14,6 +14,7 @@ import androidx.glance.GlanceTheme
 import androidx.glance.Image
 import androidx.glance.ImageProvider
 import androidx.glance.LocalSize
+import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.cornerRadius
@@ -44,10 +45,10 @@ class StockAppWidget : GlanceAppWidget() {
         private val smallMode = DpSize(100.dp, 80.dp)
         private val mediumMode = DpSize(120.dp, 120.dp)
     }
+
     override val sizeMode: SizeMode = SizeMode.Responsive(
         setOf(smallMode, mediumMode)
     )
-
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         // Инициализация корутины
@@ -60,7 +61,7 @@ class StockAppWidget : GlanceAppWidget() {
 
         provideContent {
             GlanceTheme {
-                GlanceContent() // вызываем GlanceContent
+                GlanceContent() // передаем GlanceContent в provideContent
             }
         }
     }
@@ -80,16 +81,21 @@ class StockAppWidget : GlanceAppWidget() {
 
     @Composable
     private fun Medium(stateCount: Float) {
-        Column(horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
+        Column(
+            horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
             modifier = GlanceModifier
+                .clickable { refreshPrice() }
                 .fillMaxSize()
-                .cornerRadius(15.dp)
+                .cornerRadius(15.dp) // добавлено скругление углов
                 .background(GlanceTheme.colors.background)
-                .padding(8.dp)) {
+                .padding(8.dp)
+        ) {
             StockDisplay(stateCount)
             Image(
-                provider = ImageProvider(if (PriceDataRepo.change > 0)
-                    R.drawable.up_arrow else R.drawable.down_arrow),
+                provider = ImageProvider(
+                    if (PriceDataRepo.change > 0)
+                        R.drawable.up_arrow else R.drawable.down_arrow
+                ),
                 contentDescription = "Arrow Image",
                 modifier = GlanceModifier
                     .fillMaxSize()
@@ -97,8 +103,6 @@ class StockAppWidget : GlanceAppWidget() {
             )
         }
     }
-
-
 
     @Composable
     fun StockDisplay(stateCount: Float) {
@@ -114,10 +118,13 @@ class StockAppWidget : GlanceAppWidget() {
             color = color
         )
 
-        Text(PriceDataRepo.ticker, style = TextStyle(
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold
-        ))
+        Text(
+            PriceDataRepo.ticker,
+            style = TextStyle(
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold
+            )
+        )
 
         Text(
             text = String.format(Locale.getDefault(), "%.2f", stateCount),
@@ -133,7 +140,6 @@ class StockAppWidget : GlanceAppWidget() {
     @Composable
     fun GlanceContent() {
         val stateCount by PriceDataRepo.currentPrice.collectAsState()
-        Small(stateCount) // вызываем Small здесь
         val size = LocalSize.current
         when (size) {
             smallMode -> Small(stateCount)
@@ -142,12 +148,20 @@ class StockAppWidget : GlanceAppWidget() {
     }
 
     @Composable
-    fun Small(stateCount: Float) {
-        Column(modifier = GlanceModifier
-            .fillMaxSize()
-            .background(GlanceTheme.colors.background)
-            .padding(8.dp)) {
+    private fun Small(stateCount: Float) {
+        Column(
+            modifier = GlanceModifier
+                .clickable { refreshPrice() }
+                .fillMaxSize()
+                .cornerRadius(8.dp) // скругление углов
+                .background(GlanceTheme.colors.background)
+                .padding(8.dp)
+        ) {
             StockDisplay(stateCount)
         }
+    }
+
+    private fun refreshPrice() {
+        PriceDataRepo.update()
     }
 }
